@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: skincare_db
+    ports:
+      - "27017:27017"  # This is the magic door number
+    volumes:
+      - D:/mongodb-rb-docker:/data/db  # Our permanent memory
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: salva123
+    restart: always
+
+volumes:
+  mongodb_data:  # Our never-forget storage

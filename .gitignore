@@ -1,0 +1,28 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environment
+.env
+*.env
+
+# Logs and reports
+*.log
+current_report.json
+
+# OS files
+.DS_Store
+
+# Images (if you don't want to track them)
+data/*.jpg
+data/*.jpeg
+data/*.png
+
+# Docker
+*.pid
+
+# Python egg info
+*.egg-info/
+
