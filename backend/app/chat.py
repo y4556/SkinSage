@@ -4,7 +4,9 @@ import aiohttp
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(dotenv_path)
+
 
 # Configure logger
 logging.basicConfig(level=logging.INFO)
@@ -84,6 +86,7 @@ async def get_chat_response(
     10. Note any ingredients that might worsen their concerns
     11. If the question is about the DIY product, provide steps 
     12. Always provide sources for your information
+    13. Provide URL links to sources when possible and if of the article from where you get the information
     """
 
     headers = {

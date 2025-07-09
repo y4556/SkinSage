@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -17,7 +16,8 @@ from dotenv import load_dotenv
 from typing import Optional, List
 
 # Load environment variables
-load_dotenv()
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(dotenv_path)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -212,6 +212,13 @@ async def analyze_product_from_image(
         ingredients = await extract_ingredients(contents)
         logger.info(f"Extracted ingredients: {ingredients}")
         
+        # Handle empty ingredients case
+        if not ingredients or ingredients.strip() == "":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No ingredients found in image"
+            )
+        
         analysis = await analyze_ingredients(
             ingredients,
             skin_type=current_user["skin_type"],
@@ -226,13 +233,16 @@ async def analyze_product_from_image(
         await save_report(current_user["email"], report)
         return report
         
+    except HTTPException as he:
+        # Re-raise HTTPExceptions (like our 400 error)
+        raise he
     except Exception as e:
         logger.error(f"Product analysis failed: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not analyze product from image"
         )
-
+    
 @app.post("/chat", response_model=dict)
 async def chat_about_product(
     request: ChatRequest,

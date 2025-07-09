@@ -8,7 +8,8 @@ from PIL import Image, ImageEnhance
 import io
 
 # Load environment variables
-load_dotenv()
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(dotenv_path)
 
 # Configure logger
 logging.basicConfig(level=logging.INFO)
@@ -20,6 +21,10 @@ OCR_URL = "https://api.ocr.space/parse/image"
 async def extract_ingredients(image_bytes: bytes) -> str:
     """Extract ingredients from product image using OCR"""
     try:
+
+        if not OCR_API_KEY:
+            logger.error("OCR_SPACE_API_KEY environment variable not set")
+            raise RuntimeError("OCR API key missing")
         # Optimize and process image
         optimized_image = await optimize_image(image_bytes)
         base64_image = base64.b64encode(optimized_image).decode("utf-8")
@@ -37,7 +42,7 @@ async def extract_ingredients(image_bytes: bytes) -> str:
         
         headers = {
             "apikey": OCR_API_KEY,
-            "Content-Type": "application/x-www-form-urlencoded"
+            # "Content-Type": "application/x-www-form-urlencoded"
         }
         
         # Send to OCR API

@@ -6,7 +6,9 @@ import re
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+load_dotenv(dotenv_path)
+
 
 # Configure logger
 logging.basicConfig(level=logging.INFO)
@@ -41,7 +43,7 @@ async def analyze_ingredients(
     Concerns: {concerns_str}
     
     ### ANALYSIS REQUEST ###
-    As a cosmetic chemist, analyze these skincare ingredients for THIS specific user, if its not an ingredient skip it:
+    As a cosmetic chemist, analyze these skincare ingredients for THIS specific user, if its an unknown or not an ingredient skip it:
     {ingredients_str}
     
     For each ingredient, provide:
@@ -58,6 +60,8 @@ async def analyze_ingredients(
     - Allergy risk
     - Personalized suitability score (1-5)
     - Key concerns specifically for this user's skin profile
+    - Tell other products that should be used along with this product to address concerns laong with the URLs
+    - Tell which chemicals should be avoided if this product is being used.
 
     Format response as JSON:
     {{
