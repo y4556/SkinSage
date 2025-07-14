@@ -10,10 +10,13 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+from backend.app.search import generate_routine_with_groq
 from fastapi.security import OAuth2PasswordBearer,  OAuth2PasswordRequestForm
 import os
+import re
 from dotenv import load_dotenv
 from typing import Optional, List
+import asyncio
 
 # Load environment variables
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
@@ -79,7 +82,20 @@ class ChatRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+class RoutineRequest(BaseModel):
+    time_of_day: str  # "AM" or "PM"
 
+class TrendingRequest(BaseModel):
+    product_type: str
+
+class RoutineStep(BaseModel):
+    step: str
+    product: str
+    brand: str
+    price: str
+    url: str
+    rating: str
+    reviews: str
 # Helper functions
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
@@ -282,24 +298,49 @@ async def get_report_endpoint(
             detail="No report available"
         )
     return report
+# Add new imports
+import asyncio
 
-@app.get("/health", response_model=dict)
-async def health_check() -> dict:
-    """Service health check"""
+# Add new models
+class RoutineRequest(BaseModel):
+    time_of_day: str  # "AM" or "PM"
+
+class TrendingRequest(BaseModel):
+    product_type: str
+
+@app.post("/generate-routine", response_model=dict)
+async def generate_skincare_routine(
+    request: RoutineRequest,
+    current_user: dict = Depends(get_current_user)
+) -> dict:
     try:
-        await db.command("ping")
-        db_status = "connected"
+        skin_type = current_user["skin_type"]
+        concerns = current_user["concerns"]
+        
+        routine_data = await generate_routine_with_groq(
+            request.time_of_day,
+            skin_type,
+            concerns
+        )
+        
+        if not routine_data:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to generate routine"
+            )
+        
+        return {
+            "time_of_day": request.time_of_day,
+            "skin_type": skin_type,
+            "concerns": concerns,
+            "routine": routine_data.get("routine", [])
+        }
     except Exception as e:
-        logger.error(f"MongoDB connection failed: {str(e)}")
-        db_status = "disconnected"
-    
-    return {
-        "status": "ok",
-        "version": app.version,
-        "database": db_status
-    }
-
-@app.on_event("startup")
+        logger.error(f"Routine generation failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Could not generate skincare routine"
+        )
 async def startup_event() -> None:
     """Initialize database on startup"""
     try:
