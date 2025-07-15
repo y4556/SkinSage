@@ -17,6 +17,7 @@ import re
 from dotenv import load_dotenv
 from typing import Optional, List
 import asyncio
+from backend.app.web_scraper import get_ingredients_by_product_name
 
 # Load environment variables
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
@@ -341,6 +342,59 @@ async def generate_skincare_routine(
             status_code=500,
             detail="Could not generate skincare routine"
         )
+@app.post("/analyze-product-by-name", response_model=dict)
+async def analyze_product_by_name(
+    request: dict,  # Expecting {"product_name": "..."}
+    current_user: dict = Depends(get_current_user)
+) -> dict:
+    """Search for product and analyze its ingredients"""
+    try:
+        product_name = request.get("product_name")
+        if not product_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Product name is required"
+            )
+        
+        logger.info(f"Searching for product: {product_name}")
+        
+        # Get ingredients from web
+        ingredients, source_url = get_ingredients_by_product_name(product_name)
+        
+        if not ingredients:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Could not find product ingredients"
+            )
+        
+        logger.info(f"Extracted ingredients: {ingredients[:100]}...")
+        
+        # Analyze ingredients
+        analysis = await analyze_ingredients(
+            ingredients,
+            skin_type=current_user["skin_type"],
+            concerns=current_user["concerns"]
+        )
+        
+        report = {
+            "product_name": product_name,
+            "source_url": source_url,
+            "extracted_ingredients": ingredients,
+            "analysis": analysis
+        }
+        
+        await save_report(current_user["email"], report)
+        return report
+        
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Product analysis failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not analyze product by name"
+        )
+
 async def startup_event() -> None:
     """Initialize database on startup"""
     try:

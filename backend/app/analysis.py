@@ -81,35 +81,42 @@ async def analyze_ingredients(
     
     # Split ingredients into a list
     ingredients_list = [ing.strip() for ing in ingredients_str.split(",") if ing.strip()]
-    
+    # Update the prompt to include alternative products
     prompt = f"""
     ### USER'S SKIN PROFILE ###
     Skin Type: {skin_type}
     Concerns: {concerns_str}
-    
+
     ### ANALYSIS REQUEST ###
     As a cosmetic chemist, analyze ALL {len(ingredients_list)} skincare ingredients below for THIS specific user.
     Analyze each ingredient COMPLETELY before moving to the next. DO NOT SKIP ANY INGREDIENT.
-    
+
     Ingredients to analyze:
     {", ".join(ingredients_list)}
-    
+
     For EACH ingredient, provide:
     1. Function in skincare
     2. Safety: safe/caution/unsafe
     3. Barrier Impact: positive/neutral/negative
     4. Allergy Potential: low/medium/high
     5. Special Concerns (if any)
-    6. Personalized notes for {skin_type} skin and {concerns_str} concerns and tell what other ingredients would work better for this user.
-    7. Check if the prodcut is a suncreen and if so, analyze its SPF and PA rating
-    
+    6. Personalized notes for {skin_type} skin and {concerns_str} concerns
+    7. Check if the product is a sunscreen and if so, analyze its SPF and PA rating
+
     Then provide overall product assessment:
     - Safety rating
     - Barrier impact
     - Allergy risk
     - Personalized suitability score (1-5)
     - Key concerns specifically for this user's skin profile
-    - Recommendations for alternative ingredients that would work better
+
+    RECOMMEND 2-3 ALTERNATIVE PRODUCTS:
+    - Recommend specific brand+product alternatives that would be better for this user
+    - Include both commercial and natural options
+    - For each alternative, provide:
+    * Brand and product name
+    * Brief reason why it's better for this user's skin profile
+    * Key beneficial ingredients
 
     IMPORTANT RULES:
     1. Analyze ALL ingredients - DO NOT SKIP ANY
@@ -117,6 +124,7 @@ async def analyze_ingredients(
     3. Use double quotes for all keys and string values
     4. Do NOT add commas after the last element in arrays/objects
     5. Keep ingredient analysis concise but complete
+    6. If any ingredient is not recognized, skip it.
 
     Format response as JSON:
     {{
@@ -126,8 +134,7 @@ async def analyze_ingredients(
             "allergy_risk": "low/medium/high",
             "suitability_score": 1-5,
             "key_concerns": ["list", "of", "concerns"],
-            "personalized_notes": "Detailed notes for user's skin type",
-            "recommended_alternatives": ["alternative1", "alternative2"]
+            "personalized_notes": "Detailed notes for user's skin type"
         }},
         "ingredients": [
             {{
@@ -139,10 +146,19 @@ async def analyze_ingredients(
                 "special_concerns": ["concern1", "concern2"],
                 "personalized_notes": "Notes for user's skin type"
             }}
+        ],
+        "alternative_products": [
+            {{
+                "brand": "Brand Name",
+                "product": "Product Name",
+                "type": "commercial/natural",
+                "reason": "Why it's better",
+                "key_ingredients": ["ingredient1", "ingredient2"]
+            }}
         ]
     }}
     """
-
+   
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
