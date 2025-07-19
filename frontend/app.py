@@ -1,4 +1,4 @@
-
+import base64
 import streamlit as st
 import requests
 import os
@@ -232,7 +232,168 @@ def logout():
     st.success("Logged out successfully!")
     time.sleep(1)
     st.rerun()
-
+def display_comparison_results(comparison, analyses):
+    """Display comparison results in a user-friendly format"""
+    st.title("🏆 Product Comparison Results")
+    
+    # Extract product data
+    p1 = analyses["product1"]
+    p2 = analyses["product2"]
+    p1_overall = p1["overall_assessment"]
+    p2_overall = p2["overall_assessment"]
+    
+    # Show recommended product
+    better_idx = comparison.get("better_product", 1)
+    st.success(f"✨ **Recommended Product: {'1' if better_idx == 1 else '2'}**")
+    
+    # Product cards side-by-side
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🧴 Product 1")
+        display_product_card(p1_overall, better_idx == 1)
+        
+    with col2:
+        st.subheader("🧴 Product 2")
+        display_product_card(p2_overall, better_idx == 2)
+    
+    # Key metrics comparison
+    st.subheader("📊 Key Metrics Comparison")
+    compare_metrics(p1_overall, p2_overall)
+    
+    # Personalized notes
+    st.subheader("💬 Personalized Notes")
+    notes_col1, notes_col2 = st.columns(2)
+    with notes_col1:
+        st.info(p1_overall.get("personalized_notes", "No notes available"))
+    with notes_col2:
+        st.info(p2_overall.get("personalized_notes", "No notes available"))
+    
+    # Key concerns
+    st.subheader("⚠️ Key Concerns")
+    concerns_col1, concerns_col2 = st.columns(2)
+    with concerns_col1:
+        if p1_overall.get("key_concerns"):
+            for concern in p1_overall["key_concerns"]:
+                st.error(f"- {concern}")
+        else:
+            st.info("No major concerns")
+    with concerns_col2:
+        if p2_overall.get("key_concerns"):
+            for concern in p2_overall["key_concerns"]:
+                st.error(f"- {concern}")
+        else:
+            st.info("No major concerns")
+    
+    # Show alternatives for the recommended product
+    st.subheader("♻️ Recommended Alternatives")
+    better_product = p1 if better_idx == 1 else p2
+    if better_product.get("alternative_products"):
+        for alt in better_product["alternative_products"]:
+            with st.expander(f"**{alt.get('brand', 'Unknown')} - {alt.get('product', 'Unknown')}**"):
+                st.markdown(f"**Why better:** {alt.get('reason', 'N/A')}")
+                st.markdown(f"**Key ingredients:** {', '.join(alt.get('key_ingredients', []))}")
+    else:
+        st.info("No alternative products found")
+def display_product_card(overall, is_better):
+    """Display product summary card"""
+    card_color = "#e6f4ea" if is_better else "#f9f9f9"
+    border = "4px solid #4CAF50" if is_better else "1px solid #ddd"
+    
+    st.markdown(
+        f"""
+        <div style="
+            background-color: {card_color};
+            border: {border};
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        ">
+            <div style="font-size: 1.2rem; font-weight: bold; margin-bottom: 10px;">
+                Overall Assessment
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+                <div>
+                    <div style="font-weight: 500;">Safety</div>
+                    <div>{overall.get('safety_rating', 'N/A').capitalize()}</div>
+                </div>
+                <div>
+                    <div style="font-weight: 500;">Barrier</div>
+                    <div>{overall.get('barrier_impact', 'N/A').capitalize()}</div>
+                </div>
+                <div>
+                    <div style="font-weight: 500;">Allergy</div>
+                    <div>{overall.get('allergy_risk', 'N/A').capitalize()}</div>
+                </div>
+            </div>
+            <div style="margin-top: 15px; text-align: center;">
+                <div style="font-size: 2.5rem; color: {'#4CAF50' if is_better else '#333'};">
+                    {overall.get('suitability_score', 'N/A')}
+                </div>
+                <div style="font-size: 0.9rem; color: #666;">
+                    Suitability Score
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+def get_saved_routines():
+    try:
+        response = requests.get(
+            f"{API_BASE_URL}/saved-routines",
+            headers=get_auth_header()
+        )
+        return response.json() if response.status_code == 200 else []
+    except Exception as e:
+        st.error(f"Error loading routines: {str(e)}")
+        return []
+def compare_metrics(p1, p2):
+    """Compare key metrics visually"""
+    metrics = [
+        ("safety_rating", "Safety"),
+        ("barrier_impact", "Barrier Impact"),
+        ("allergy_risk", "Allergy Risk"),
+        ("suitability_score", "Suitability")
+    ]
+    
+    for metric, label in metrics:
+        p1_val = p1.get(metric, "N/A")
+        p2_val = p2.get(metric, "N/A")
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        
+        with col1:
+            st.markdown(f"**{p1_val}**")
+        
+        with col2:
+            st.markdown(f"**{label}**")
+            if isinstance(p1_val, (int, float)) and isinstance(p2_val, (int, float)):
+                max_val = max(p1_val, p2_val)
+                p1_width = (p1_val / max_val) * 100 if max_val > 0 else 50
+                p2_width = (p2_val / max_val) * 100 if max_val > 0 else 50
+                
+                st.markdown(
+                    f"""
+                    <div style="display: flex; height: 30px; margin: 5px 0;">
+                        <div style="background: #4CAF50; width: {p1_width}%; 
+                                    display: flex; align-items: center; padding-left: 5px;">
+                            P1
+                        </div>
+                        <div style="background: #2196F3; width: {p2_width}%; 
+                                    display: flex; justify-content: flex-end; 
+                                    align-items: center; padding-right: 5px;">
+                            P2
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+        
+        with col3:
+            st.markdown(f"**{p2_val}**")
+        
+        st.markdown("---")
 # Page functions
 def login_page():
     st.title("✨ Welcome to SkinSage")
@@ -579,7 +740,17 @@ def analyze_product_page():
                 st.error(f"Error: {str(e)}")
     
     st.markdown('</div>', unsafe_allow_html=True)
-
+def display_routine(routine_data):
+    st.subheader(f"{'🌞 Morning' if routine_data['time_of_day'] == 'AM' else '🌙 Evening'} Routine")
+    st.caption(f"Created for {routine_data['skin_type'].capitalize()} skin")
+    
+    for step in routine_data.get("routine", []):
+        with st.expander(f"**{step['step'].capitalize()}: {step['product']}**"):
+            st.markdown(f"**Description:** {step.get('description', '')}")
+            if step.get("reason"):
+                st.info(f"**Why this product:** {step['reason']}")
+            if step.get("link"):
+                st.markdown(f"[🔗 Product Link]({step['link']})")
 def profile_page():
     st.title("👤 Your Profile")
     
@@ -636,6 +807,21 @@ def profile_page():
 
 def routine_page():
     st.title("✨ Your Personalized Skincare Routine")
+    saved_routines = get_saved_routines()
+    if saved_routines:
+        routine_names = [f"{r['time_of_day']} Routine - {r['created_at'][:10]}" 
+                       for r in saved_routines]
+        selected_routine = st.selectbox(
+            "Select Saved Routine",
+            routine_names,
+            index=0
+        )
+        selected_index = routine_names.index(selected_routine)
+        display_routine(saved_routines[selected_index])
+
+        st.subheader("Generate New Routine")
+        st.markdown("---")
+    
     
     try:
         profile = requests.get(
@@ -651,10 +837,10 @@ def routine_page():
         st.warning("Could not load skin profile")
         return
     
-    if st.button("🔄 Generate Routine", use_container_width=True):
-        st.session_state.routine_data = None
+    st.markdown("---")
     
-    if "routine_data" not in st.session_state or not st.session_state.routine_data:
+    if st.button("✨ Generate AM & PM Routine", use_container_width=True):
+    
         with st.spinner("🧪 Creating your personalized routine with AI..."):
             try:
                 # Generate AM routine
@@ -723,7 +909,8 @@ def home_page():
         nav_options = {
             "🔍 Analyze Product": "analyze",
             "✨ Your Routine": "routine",
-            "👤 Profile": "profile"
+            "👤 Profile": "profile", 
+            "🔄 Compare Products": "compare"
         }
         selection = st.radio("Go to", list(nav_options.keys()), key="nav_radio")
         page = nav_options[selection]
@@ -748,6 +935,116 @@ def home_page():
         routine_page()
     elif page == "profile":
         profile_page()
+    elif page == "compare":
+        compare_products_page()
+
+def compare_products_page():
+    st.title("🔄 Compare Skincare Products")
+    st.markdown("Compare two products using any input method")
+    
+    col1, col2 = st.columns(2)
+    products = {}
+    
+    with col1:
+        st.subheader("Product 1")
+        input_type1 = st.radio("Input method:", 
+                              ["Image", "Text"],
+                              key="input1",
+                              horizontal=True)
+        
+        if input_type1 == "Image":
+            uploaded_file1 = st.file_uploader("Upload product image", 
+                                             type=["jpg", "jpeg", "png"],
+                                             key="file1")
+            if uploaded_file1:
+                products["product1"] = {
+                    "input_type": "image",
+                    "input_data": base64.b64encode(uploaded_file1.getvalue()).decode("utf-8")
+                }
+                st.image(uploaded_file1, width=200)
+                
+        else:  # Text
+            text_input1 = st.text_area("Enter product name or ingredients", 
+                                     height=150,
+                                     key="text1")
+            if text_input1:
+                products["product1"] = {
+                    "input_type": "text",
+                    "input_data": text_input1
+                }
+    
+    with col2:
+        st.subheader("Product 2")
+        input_type2 = st.radio("Input method:", 
+                              ["Image", "Text"],
+                              key="input2",
+                              horizontal=True)
+        
+        if input_type2 == "Image":
+            uploaded_file2 = st.file_uploader("Upload product image", 
+                                             type=["jpg", "jpeg", "png"],
+                                             key="file2")
+            if uploaded_file2:
+                products["product2"] = {
+                    "input_type": "image",
+                    "input_data": base64.b64encode(uploaded_file2.getvalue()).decode("utf-8")
+                }
+                st.image(uploaded_file2, width=200)
+                
+        else:  # Text
+            text_input2 = st.text_area("Enter product name or ingredients", 
+                                     height=150,
+                                     key="text2")
+            if text_input2:
+                products["product2"] = {
+                    "input_type": "text",
+                    "input_data": text_input2
+                }
+    
+    st.markdown("---")
+    
+    if st.button("Compare Products", use_container_width=True,
+                disabled=len(products) < 2):
+        with st.spinner("Analyzing products with AI agent..."):
+            try:
+                # First analyze both products
+                analysis_results = {}
+                for key, product in products.items():
+                    response = requests.post(
+                        f"{API_BASE_URL}/analyze-product-agent",
+                        headers=get_auth_header(),
+                        json={
+                            "input_type": product["input_type"],
+                            "input_data": product["input_data"]
+                        }
+                    )
+                    if response.status_code == 200:
+                        analysis_results[key] = response.json()
+                    else:
+                        st.error(f"Analysis failed for {key}: {response.text}")
+                
+                # Then compare them
+                if len(analysis_results) == 2:
+                    compare_response = requests.post(
+                        f"{API_BASE_URL}/compare-products",
+                        headers=get_auth_header(),
+                        json={
+                            "product1": analysis_results["product1"],
+                            "product2": analysis_results["product2"]
+                        }
+                    )
+                    
+                    if compare_response.status_code == 200:
+                        comparison = compare_response.json()
+                        display_comparison_results(comparison, analysis_results)
+                    else:
+                        st.error(f"Comparison failed: {compare_response.text}")
+                else:
+                    st.error("Failed to analyze both products")
+                    
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+
 
 def main():
     inject_custom_css()

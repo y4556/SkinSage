@@ -18,6 +18,47 @@ logger = logging.getLogger(__name__)
 OCR_API_KEY = os.getenv("OCR_SPACE_API_KEY")
 OCR_URL = "https://api.ocr.space/parse/image"
 
+
+async def extract_raw_text_from_image(image_bytes: bytes) -> str:
+    """Extract raw text from image without processing"""
+    try:
+        if not OCR_API_KEY:
+            logger.error("OCR_SPACE_API_KEY environment variable not set")
+            raise RuntimeError("OCR API key missing")
+            
+        # Optimize image for better OCR results
+        optimized_image = await optimize_image(image_bytes)
+        base64_image = base64.b64encode(optimized_image).decode("utf-8")
+        
+        # Prepare OCR request
+        payload = {
+            "base64Image": f"data:image/jpeg;base64,{base64_image}",
+            "language": "eng",
+            "isOverlayRequired": False,
+            "filetype": "JPG",
+            "OCREngine": 2,
+            "scale": True,
+            "detectOrientation": True
+        }
+        
+        headers = {"apikey": OCR_API_KEY}
+        
+        # Send to OCR API
+        async with aiohttp.ClientSession() as session:
+            async with session.post(OCR_URL, data=payload, headers=headers) as response:
+                result = await response.json()
+                
+                if response.status != 200 or result.get("IsErroredOnProcessing", True):
+                    error = result.get("ErrorMessage", "Unknown OCR error")
+                    logger.error(f"OCR error: {error}")
+                    raise RuntimeError("OCR processing failed")
+                
+                # Return raw text without any processing
+                return result["ParsedResults"][0]["ParsedText"]
+                
+    except Exception as e:
+        logger.error(f"Raw text extraction failed: {str(e)}")
+        raise RuntimeError("Failed to extract raw text from image")
 async def extract_ingredients(image_bytes: bytes) -> str:
     """Extract ingredients from product image using OCR"""
     try:

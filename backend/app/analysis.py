@@ -100,14 +100,19 @@ async def analyze_ingredients(
     3. Barrier Impact: positive/neutral/negative
     4. Allergy Potential: low/medium/high
     5. Special Concerns (if any)
-    6. Personalized notes for {skin_type} skin and {concerns_str} concerns
+    6. Personalized notes for {skin_type} skin which skin concerns does it target {concerns_str} concerns and write 2 3 lines about it.When to use it and what to avoid using it with.
     7. Check if the product is a sunscreen and if so, analyze its SPF and PA rating
 
     Then provide overall product assessment:
     - Safety rating
     - Barrier impact
     - Allergy risk
-    - Personalized suitability score (1-5)
+    - Personalized suitability score (1-5) using this rubric:
+        5 = Excellent match (all ingredients beneficial for {skin_type} skin and addresses {concerns_str})
+        4 = Good match (most ingredients beneficial, minor concerns)
+        3 = Neutral (some beneficial ingredients, some concerns)
+        2 = Poor match (mostly problematic ingredients)
+        1 = Very poor match (multiple ingredients harmful for {skin_type} skin)
     - Key concerns specifically for this user's skin profile
 
     RECOMMEND 2-3 ALTERNATIVE PRODUCTS:
@@ -115,7 +120,7 @@ async def analyze_ingredients(
     - Include both commercial and natural options
     - For each alternative, provide:
     * Brand and product name
-    * Brief reason why it's better for this user's skin profile
+    * Brief reason why it's better for this user's skin profile and which skin concerns does it target {concerns_str} concerns
     * Key beneficial ingredients
 
     IMPORTANT RULES:
@@ -176,7 +181,7 @@ async def analyze_ingredients(
                 "content": prompt
             }
         ],
-        "temperature": 0.2,  # Lower temperature for more consistent results
+        "temperature": 0.0,  # Lower temperature for more consistent results
         "max_tokens": 4000,   # Increased token limit
         "response_format": {"type": "json_object"}
     }
@@ -223,3 +228,4 @@ async def analyze_ingredients(
     except Exception as e:
         logger.exception("Groq analysis failed")
         return fallback_analysis(ingredients_str)
+    # and {concerns_str} concerns

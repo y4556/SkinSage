@@ -22,6 +22,7 @@ data/*.png
 
 # Docker
 *.pid
+*test.py
 
 # Python egg info
 *.egg-info/

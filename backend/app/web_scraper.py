@@ -61,7 +61,9 @@ def extract_ingredients_from_url(url):
             r"full ingredients?",
             r"what[’']?s in it",
             r"key ingredients",
-            r"active ingredients"
+            r"active ingredients",
+            r"contains",
+            r"Key ingredients"
         ]
 
         for pat in patterns:

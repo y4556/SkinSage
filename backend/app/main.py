@@ -10,15 +10,18 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from backend.app.search import generate_routine_with_groq
+from backend.app.routine import generate_routine_with_groq
+from backend.app.agent import SkincareAgent
+from backend.app.comparison import compare_products
 from fastapi.security import OAuth2PasswordBearer,  OAuth2PasswordRequestForm
 import os
 import re
+from fastapi import BackgroundTasks
 from dotenv import load_dotenv
 from typing import Optional, List
 import asyncio
 from backend.app.web_scraper import get_ingredients_by_product_name
-
+from backend.app.email import send_welcome_email, send_routine_email
 # Load environment variables
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
 load_dotenv(dotenv_path)
@@ -60,6 +63,7 @@ app.add_middleware(
 # MongoDB client setup
 client = AsyncIOMotorClient(MONGODB_URI)
 db = client[DB_NAME]
+routines_collection = db["routines"]
 
 # Pydantic models
 class UserCreate(BaseModel):
@@ -100,7 +104,12 @@ class RoutineStep(BaseModel):
 # Helper functions
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
-
+class RoutineDocument(BaseModel):
+    time_of_day: str
+    routine: List[RoutineStep]  
+    skin_type: str
+    concerns: List[str]
+    created_at: datetime = datetime.utcnow()
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -113,6 +122,17 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+def send_email_with_routine(to_email: str, time_of_day: str, routine: list, skin_type: str, concerns: list):
+    routine_data = {
+        "time_of_day": time_of_day,
+        "routine": routine
+    }
+    send_routine_email(
+        user_email=to_email,
+        skin_type=skin_type,
+        concerns=concerns,
+        routine_data=routine_data
+    )
 async def get_user(email: str) -> Optional[dict]:
     return await db.users.find_one({"email": email})
 
@@ -172,9 +192,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
 
 # Endpoints
 @app.post("/signup", response_model=dict)
-async def signup(user_data: UserCreate) -> dict:
+async def signup(user_data: UserCreate,background_tasks: BackgroundTasks) -> dict:
     """Create a new user account"""
     existing_user = await get_user(user_data.email)
+    
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -182,6 +203,12 @@ async def signup(user_data: UserCreate) -> dict:
         )
     
     user_id = await create_user(user_data)
+    background_tasks.add_task(
+        send_welcome_email,
+        user_email=user_data.email,
+        skin_type=user_data.skin_type,
+        concerns=user_data.concerns
+    )
     return {"message": "User created successfully", "user_id": user_id}
 
 @app.post("/login", response_model=Token)
@@ -312,6 +339,7 @@ class TrendingRequest(BaseModel):
 @app.post("/generate-routine", response_model=dict)
 async def generate_skincare_routine(
     request: RoutineRequest,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user)
 ) -> dict:
     try:
@@ -329,7 +357,25 @@ async def generate_skincare_routine(
                 status_code=500,
                 detail="Failed to generate routine"
             )
-        
+        #saving routine to MongoDB
+        routine_doc = {
+            "email": current_user["email"],
+            "time_of_day": request.time_of_day,
+            "skin_type": skin_type,
+            "concerns": concerns,
+            "routine": routine_data.get("routine", []),
+            "created_at": datetime.utcnow()
+        }
+        await routines_collection.insert_one(routine_doc)
+        background_tasks.add_task(
+            send_email_with_routine,  
+            to_email=current_user["email"],
+            time_of_day=request.time_of_day,
+            routine=routine_data.get("routine", []),
+            skin_type=skin_type,
+            concerns=concerns
+        )
+
         return {
             "time_of_day": request.time_of_day,
             "skin_type": skin_type,
@@ -342,6 +388,24 @@ async def generate_skincare_routine(
             status_code=500,
             detail="Could not generate skincare routine"
         )
+
+@app.get("/saved-routines", response_model=List[dict])
+async def get_saved_routines(
+    current_user: dict = Depends(get_current_user)
+) -> List[dict]:
+    """Get all saved routines for current user"""
+    cursor = routines_collection.find(
+        {"email": current_user["email"]},
+        {"_id": 0}  # Exclude MongoDB ID
+    ).sort("created_at", -1)  # Newest first
+    
+    routines = []
+    async for document in cursor:
+        # Convert ObjectId to string if needed
+        document["id"] = str(document.pop("_id")) 
+        routines.append(document)
+        
+    return routines
 @app.post("/analyze-product-by-name", response_model=dict)
 async def analyze_product_by_name(
     request: dict,  # Expecting {"product_name": "..."}
@@ -395,6 +459,33 @@ async def analyze_product_by_name(
             detail="Could not analyze product by name"
         )
 
+@app.post("/analyze-product-agent", response_model=dict)
+async def analyze_product_agent(
+    request: dict,  # {"input_type": "image/text", "input_data": "..."}
+    current_user: dict = Depends(get_current_user)
+) -> dict:
+    """Agent-based product analysis endpoint"""
+    agent = SkincareAgent({
+        "skin_type": current_user["skin_type"],
+        "concerns": current_user["concerns"]
+    })
+    return await agent.process_input(
+        request["input_type"],
+        request["input_data"]
+    )
+
+@app.post("/compare-products", response_model=dict)
+async def compare_products_endpoint(
+    products: dict,  # {"product1": analysis1, "product2": analysis2}
+    current_user: dict = Depends(get_current_user)
+) -> dict:
+    """Compare two analyzed products"""
+    return compare_products(
+        products["product1"],
+        products["product2"],
+        current_user["skin_type"],
+        current_user["concerns"]
+    )
 async def startup_event() -> None:
     """Initialize database on startup"""
     try:
