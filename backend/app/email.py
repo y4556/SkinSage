@@ -19,10 +19,10 @@ def send_email(subject: str, recipient: str, html_content: str, plaintext_conten
     """Generic email sending function"""
     try:
         # Email configuration
-        sender = os.getenv("EMAIL_SENDER", "skinsage.app@gmail.com")
-        password = os.getenv("EMAIL_PASSWORD", "xfmx ihit uzli dlkl")
-        smtp_server = os.getenv("EMAIL_SERVER", "smtp.gmail.com")
-        smtp_port = int(os.getenv("EMAIL_PORT", 587))
+        sender = os.getenv("EMAIL_SENDER")
+        password = os.getenv("EMAIL_PASSWORD")
+        smtp_server = os.getenv("EMAIL_SERVER")
+        smtp_port = int(os.getenv("EMAIL_PORT"))
         use_tls = os.getenv("EMAIL_USE_TLS", "True") == "True"
         
         # Validate credentials
