@@ -31,13 +31,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # MongoDB configuration
-MONGODB_URI = "mongodb://root:salva123@localhost:27017/"
+MONGODB_URI = os.getenv("MONGODB_URL")
 DB_NAME = "skincare_db"
 
 # Security configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your_very_strong_secret_key_here")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
