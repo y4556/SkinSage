@@ -18,7 +18,8 @@ def render():
         "Blackheads",
         "Damaged Skin Barrier",
         "Hyperpigmentation & Dark Spots",
-        "Redness"
+        "Redness",
+        "Dullness"
     ]
     
     if st.session_state.auth_page == "login":

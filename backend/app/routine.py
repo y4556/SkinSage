@@ -61,7 +61,7 @@ Return ONLY valid JSON in this format:
     payload = {
         "model": "llama3-70b-8192",
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3,
+        "temperature": 0.7,
         "max_tokens": 1500,
         "response_format": {"type": "json_object"}
     }

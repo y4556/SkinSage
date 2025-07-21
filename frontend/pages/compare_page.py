@@ -6,10 +6,8 @@ from utils import get_auth_header, display_comparison_results,API_BASE_URL
 def render():
     st.title("🔄 Compare Skincare Products")
     st.markdown("Compare two products using any input method")
-    
     col1, col2 = st.columns(2)
     products = {}
-    
     with col1:
         st.subheader("Product 1")
         input_type1 = st.radio("Input method:", 
@@ -74,6 +72,7 @@ def render():
             try:
                 # First analyze both products
                 analysis_results = {}
+                product_url={}
                 for key, product in products.items():
                     response = requests.post(
                         f"{API_BASE_URL}/analyze-product-agent",
@@ -85,9 +84,16 @@ def render():
                     )
                     if response.status_code == 200:
                         analysis_results[key] = response.json()
+
+                        if 'source_url' in analysis_results[key]:
+                            product_url[key] = analysis_results[key]['source_url']
+                            print("from frontend",product_url[key])
+                    
                     else:
+                 
                         st.error(f"Analysis failed for {key}: {response.text}")
-                
+
+
                 # Then compare them
                 if len(analysis_results) == 2:
                     compare_response = requests.post(

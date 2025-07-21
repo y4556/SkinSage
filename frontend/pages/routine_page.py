@@ -19,8 +19,6 @@ def render():
 
         st.subheader("Generate New Routine")
         st.markdown("---")
-    
-    
     try:
         profile = requests.get(
             f"{API_BASE_URL}/profile",

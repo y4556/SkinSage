@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_BASE_URL = os.getenv("API_BASE_URL")
 
 # Custom CSS injection
 def inject_custom_css():
@@ -201,13 +201,43 @@ def inject_custom_css():
             background: #fff !important;
             transition: all 0.3s;
 }
-        
+        .metric-card {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 2px 16px rgba(185,147,214,0.08);
+            padding: 20px 0 16px;
+            margin: 0 5px 10px 0;
+            text-align: center;
+            min-height: 80px;
+            border: 1px solid #ececec;
+        }
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+        .metric-label {
+            font-size: 1.01rem;
+            color: #888;
+            margin-top: 6px;
+        }
         .stTextInput>div>div>input:focus, .stTextInput>div>div>textarea:focus {
             border-color: var(--primary-dark) !important;
             box-shadow: 0 0 0 2px rgba(137, 164, 219, 0.18) !important;
             transform: scale(1.02);
         }
-        
+        div[data-testid="stExpander"] details {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        a {
+            color: #1e88e5 !important;
+            text-decoration: none !important;
+        }
+        a:hover {
+            text-decoration: underline !important;
+        }
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -223,7 +253,34 @@ def inject_custom_css():
             from { transform: translateY(30px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
-        
+        .ingredient-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(137, 164, 219, 0.13);
+            border: 1px solid #ececec;
+            padding: 18px 18px 8px 18px;
+            margin-bottom: 14px;
+        }
+        .ingredient-name {
+            font-weight: 700;
+            font-size: 1.12rem;
+            color: var(--primary-dark);
+            margin-bottom: 6px;
+        }
+        .ingredient-function {
+            color: #000000;;
+            font-size: 1.01rem;
+            margin-bottom: 4px;
+        }
+        .ingredient-concern {
+            color: #be4848;
+            margin: 6px 0;
+        }
+        .ingredient-notes {
+            color: #3A3A3A;
+            font-size: 0.96rem;
+        }
+
         /* Add Google Font */
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
         </style>
@@ -393,32 +450,32 @@ def compare_metrics(p1, p2):
 def display_comparison_results(comparison, analyses):
     """Display comparison results in a user-friendly format"""
     st.title("🏆 Product Comparison Results")
-    
+
     # Extract product data
     p1 = analyses["product1"]
     p2 = analyses["product2"]
     p1_overall = p1["overall_assessment"]
     p2_overall = p2["overall_assessment"]
-    
+
     # Show recommended product
     better_idx = comparison.get("better_product", 1)
     st.success(f"✨ **Recommended Product: {'1' if better_idx == 1 else '2'}**")
-    
+
     # Product cards side-by-side
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.subheader("🧴 Product 1")
         display_product_card(p1_overall, better_idx == 1)
-        
+
     with col2:
         st.subheader("🧴 Product 2")
         display_product_card(p2_overall, better_idx == 2)
-    
+
     # Key metrics comparison
     st.subheader("📊 Key Metrics Comparison")
     compare_metrics(p1_overall, p2_overall)
-    
+
     # Personalized notes
     st.subheader("💬 Personalized Notes")
     notes_col1, notes_col2 = st.columns(2)
@@ -426,7 +483,7 @@ def display_comparison_results(comparison, analyses):
         st.info(p1_overall.get("personalized_notes", "No notes available"))
     with notes_col2:
         st.info(p2_overall.get("personalized_notes", "No notes available"))
-    
+
     # Key concerns
     st.subheader("⚠️ Key Concerns")
     concerns_col1, concerns_col2 = st.columns(2)
@@ -442,8 +499,35 @@ def display_comparison_results(comparison, analyses):
                 st.error(f"- {concern}")
         else:
             st.info("No major concerns")
-    
-    # Show alternatives for the recommended product
+
+    # Sources & References block (CORRECTLY INDENTED AND OUTSIDE of with col2)
+    st.subheader("🔍 Sources & References")
+    src_col1, src_col2 = st.columns(2)
+    with src_col1:
+        st.markdown("**Product 1 Sources**")
+        url = p1.get('source_url')
+        sources = p1.get('sources')
+        if url:
+            st.markdown(f"- [Main Product Page]({url})")
+        if sources:
+            for i, source in enumerate(sources, 1):
+                st.markdown(f"- [Reference {i}]({source})")
+        if not url and not sources:
+            st.warning("No sources found for Product 1")
+
+    with src_col2:
+        st.markdown("**Product 2 Sources**")
+        url = p2.get('source_url')
+        sources = p2.get('sources')
+        if url:
+            st.markdown(f"- [Main Product Page]({url})")
+        if sources:
+            for i, source in enumerate(sources, 1):
+                st.markdown(f"- [Reference {i}]({source})")
+        if not url and not sources:
+            st.warning("No sources found for Product 2")
+
+    # Show alternatives for the recommended product (OUTSIDE of the sources columns)
     st.subheader("♻️ Recommended Alternatives")
     better_product = p1 if better_idx == 1 else p2
     if better_product.get("alternative_products"):

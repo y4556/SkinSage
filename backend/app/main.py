@@ -93,6 +93,10 @@ class RoutineRequest(BaseModel):
 class TrendingRequest(BaseModel):
     product_type: str
 
+
+class ProfileUpdate(BaseModel):
+    skin_type: str
+    concerns: List[str]
 class RoutineStep(BaseModel):
     step: str
     product: str
@@ -244,7 +248,33 @@ async def get_profile(current_user: dict = Depends(get_current_user)) -> dict:
         "skin_type": current_user["skin_type"],
         "concerns": current_user["concerns"]
     }
-
+@app.patch("/profile", response_model=UserProfile)
+async def update_profile(
+    update_data: ProfileUpdate,
+    current_user: dict = Depends(get_current_user)
+) -> dict:
+    """Update user profile"""
+    # Update user in database
+    result = await db["users"].update_one(
+        {"email": current_user["email"]},
+        {"$set": {
+            "skin_type": update_data.skin_type,
+            "concerns": update_data.concerns
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Profile update failed"
+        )
+    
+    # Return updated profile
+    return {
+        "email": current_user["email"],
+        "skin_type": update_data.skin_type,
+        "concerns": update_data.concerns
+    }
 @app.post("/analyze-product", response_model=dict)
 async def analyze_product_from_image(
     image: UploadFile = File(...),
@@ -476,7 +506,7 @@ async def analyze_product_agent(
 
 @app.post("/compare-products", response_model=dict)
 async def compare_products_endpoint(
-    products: dict,  # {"product1": analysis1, "product2": analysis2}
+    products: dict,
     current_user: dict = Depends(get_current_user)
 ) -> dict:
     """Compare two analyzed products"""

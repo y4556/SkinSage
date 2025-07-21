@@ -72,8 +72,9 @@ def fallback_analysis(ingredients: str = "") -> dict:
 
 async def analyze_ingredients(
     ingredients_str: str,
+    url: str = None,
     skin_type: str = "normal",
-    concerns: list = None
+    concerns: list = None,
 ) -> dict:
     """Analyze ingredients with user's skin profile"""
     concerns = concerns or []
@@ -100,7 +101,7 @@ async def analyze_ingredients(
     3. Barrier Impact: positive/neutral/negative
     4. Allergy Potential: low/medium/high
     5. Special Concerns (if any)
-    6. Personalized notes for {skin_type} skin which skin concerns does it target {concerns_str} concerns and write 2 3 lines about it.When to use it and what to avoid using it with.
+    6. Personalized notes for {skin_type} skin which skin concerns does it target {concerns_str} concerns and write 2 3 lines about it.When to use it and what to avoid using it with. Provide SOURCES from where you got the information.
     7. Check if the product is a sunscreen and if so, analyze its SPF and PA rating
 
     Then provide overall product assessment:
@@ -130,6 +131,7 @@ async def analyze_ingredients(
     4. Do NOT add commas after the last element in arrays/objects
     5. Keep ingredient analysis concise but complete
     6. If any ingredient is not recognized, skip it.
+    7.Give source URL of the sources if available
 
     Format response as JSON:
     {{
@@ -139,7 +141,7 @@ async def analyze_ingredients(
             "allergy_risk": "low/medium/high",
             "suitability_score": 1-5,
             "key_concerns": ["list", "of", "concerns"],
-            "personalized_notes": "Detailed notes for user's skin type"
+            "personalized_notes": "Detailed notes for user's skin type with sources URL"
         }},
         "ingredients": [
             {{
@@ -181,7 +183,7 @@ async def analyze_ingredients(
                 "content": prompt
             }
         ],
-        "temperature": 0.0,  # Lower temperature for more consistent results
+        "temperature": 0.7,  # Lower temperature for more consistent results
         "max_tokens": 4000,   # Increased token limit
         "response_format": {"type": "json_object"}
     }
@@ -219,7 +221,10 @@ async def analyze_ingredients(
                                 "special_concerns": ["Analysis incomplete"],
                                 "personalized_notes": "Could not analyze this ingredient"
                             })
-                    
+
+                    if url:       
+                     analysis['source_url'] = url
+                     print("there is a URL please consider this ",analysis["source_url"])
                     return analysis
                 except Exception as e:
                     logger.error(f"JSON parsing failed: {str(e)}")
@@ -228,4 +233,3 @@ async def analyze_ingredients(
     except Exception as e:
         logger.exception("Groq analysis failed")
         return fallback_analysis(ingredients_str)
-    # and {concerns_str} concerns

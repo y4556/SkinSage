@@ -59,10 +59,10 @@ async def extract_raw_text_from_image(image_bytes: bytes) -> str:
     except Exception as e:
         logger.error(f"Raw text extraction failed: {str(e)}")
         raise RuntimeError("Failed to extract raw text from image")
+
 async def extract_ingredients(image_bytes: bytes) -> str:
     """Extract ingredients from product image using OCR"""
     try:
-
         if not OCR_API_KEY:
             logger.error("OCR_SPACE_API_KEY environment variable not set")
             raise RuntimeError("OCR API key missing")
@@ -83,7 +83,6 @@ async def extract_ingredients(image_bytes: bytes) -> str:
         
         headers = {
             "apikey": OCR_API_KEY,
-            # "Content-Type": "application/x-www-form-urlencoded"
         }
         
         # Send to OCR API

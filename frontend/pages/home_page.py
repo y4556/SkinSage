@@ -21,18 +21,15 @@ def render():
         if st.button("Logout", key="top_logout", use_container_width=True):
             logout()
 
-
-
-
     # Sidebar navigation
     with st.sidebar:
         st.subheader("Navigation")
-        st.markdown('<h2 style="color: var(--sage-dark);">Navigation</h2>', unsafe_allow_html=True)
         nav_options = {
             "🔍 Analyze Product": "analyze",
             "✨ Your Routine": "routine",
-            "👤 Profile": "profile", 
-            "🔄 Compare Products": "compare"
+            "🔄 Compare Products": "compare",
+            "👤 Profile": "profile"
+           
         }
         selection = st.radio("Go to", list(nav_options.keys()),key="nav_radio")
         page = nav_options[selection]

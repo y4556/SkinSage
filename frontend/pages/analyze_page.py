@@ -1,11 +1,11 @@
 import streamlit as st
 import requests
-from utils import get_auth_header,API_BASE_URL
-
-
+from utils import get_auth_header,API_BASE_URL,inject_custom_css
+import re
+inject_custom_css()
 def render():
     st.markdown('<div class="section">', unsafe_allow_html=True)
-    st.markdown('<div class="section-header"><span class="section-header-icon">🔍</span><h2>Analyze Skincare Product</h2></div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header"><span class="section-header-icon"></span><h2>Analyze Skincare Product</h2></div>', unsafe_allow_html=True)
     st.markdown("Upload an image of a skincare product's ingredient list to get personalized analysis")
     # File uploader
     uploaded_file = st.file_uploader(
@@ -13,7 +13,7 @@ def render():
         type=["jpg", "jpeg", "png"],
         label_visibility="collapsed"
     )
-    st.subheader("🔍 Or search by product name")
+    st.subheader("🔍 Or Search by product name")
     
     with st.form("product_search_form"):
         product_name = st.text_input(
@@ -121,8 +121,52 @@ def render():
                     unsafe_allow_html=True
                 )
         
-        with st.expander("💡 Personalized Summary", expanded=True):
-            st.write(overall.get("personalized_notes", "No notes available"))
+
+        def extract_urls(text):
+            url_pattern = r'(https?://[^\s]+)'
+            return re.findall(url_pattern, text)
+
+        def pretty_label(url):
+            # Remove protocol (http/https) and www
+            clean = url.split("//")[-1].replace("www.", "")
+            parts = clean.split("/", 1)
+            domain = parts[0]
+            if len(parts) > 1 and parts[1]:
+                last_segment = parts[1].split("/")[-1].replace("-", " ").replace("_", " ") 
+                return f"{domain} / {last_segment.title()}"
+            else:
+                return domain
+
+        def linkify_summary(summary):
+            urls = extract_urls(summary)
+            unique_urls = list(dict.fromkeys(urls))
+            summary_new = summary
+            # Replace each URL in summary with numbered [1], [2], ...
+            for i, url in enumerate(unique_urls, 1):
+                summary_new = summary_new.replace(url, f"[{i}]")
+            return summary_new, unique_urls
+
+        personalized_notes = overall.get("personalized_notes", "No notes available")
+        summary_text, refs = linkify_summary(personalized_notes)
+
+        # Build numbered references HTML
+        if refs:
+            refs_html = "<br>".join([
+                f"{i}. <a href='{url}' target='_blank'>{pretty_label(url)}</a>"
+                for i, url in enumerate(refs, 1)
+            ])
+            summary_text += f"<br><br><b>References:</b><br>{refs_html}"
+
+        st.markdown(
+            f"""
+            <div style='background: #FCFCF7; border-radius: 10px; padding: 18px; margin: 14px 0; border: 1px solid #eee;'>
+                <b>💡 Personalized Summary</b><br>
+                {summary_text}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
 
         if analysis.get("alternative_products"):
             st.subheader("♻️ Recommended Alternative Products")

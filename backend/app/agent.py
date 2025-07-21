@@ -117,9 +117,10 @@ class SkincareAgent:
                 self.user_profile["concerns"]
             )
         else:  # product
-            ingredients, source =  get_ingredients_by_product_name(result["product_name"])
+            ingredients, url = get_ingredients_by_product_name(result["product_name"])
             return await analyze_ingredients(
                 ingredients,
                 self.user_profile["skin_type"],
-                self.user_profile["concerns"]
+                self.user_profile["concerns"],
+                url 
             )

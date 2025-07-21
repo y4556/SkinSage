@@ -1,5 +1,4 @@
 
-
 def classify_ocr_text(text):
     """Classify OCR text as product name or ingredients"""
     # Heuristic 1: Check for ingredient list keywords

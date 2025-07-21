@@ -23,7 +23,10 @@ data/*.png
 # Docker
 *.pid
 *test.py
+*app\check_api.py
+*app\classifier.py
 
 # Python egg info
 *.egg-info/
 *frontend\app.py
+*frontend\.env
