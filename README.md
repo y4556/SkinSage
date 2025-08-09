@@ -1,6 +1,8 @@
 # SkinSage - Personalized Skincare Analyzer
 
 SkinSage is an AI-powered skincare analysis platform that provides personalized product recommendations, ingredient analysis, and skincare routines tailored to your unique skin profile.
+![SkinSage Demo](assets/Demo.gif) 
+
 ## Features 
 - **Product Analysis**: Upload product images or search by name for instant ingredient analysis
 - **Personalized Routine**: AI-generated AM/PM skincare routines
@@ -17,7 +19,7 @@ SkinSage is an AI-powered skincare analysis platform that provides personalized 
 - **Web Scraping**: BeautifulSoup
 
 ## How It Works 🛠
-
+![SkinSage Demo](assets/Flowchart.jpg) 
 ## Getting Started
 
 ### Running the Application
