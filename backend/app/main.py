@@ -37,7 +37,7 @@ DB_NAME = "skincare_db"
 # Security configuration
 SECRET_KEY = os.getenv("SECRET_KEY", "your_very_strong_secret_key_here")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 120
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

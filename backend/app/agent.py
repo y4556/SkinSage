@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from backend.app.ocr import extract_raw_text_from_image
 from backend.app.web_scraper import get_ingredients_by_product_name
 from backend.app.analysis import analyze_ingredients
+from backend.prompts.prompts import AGENT_CLASSIFICATION_PROMPT
 
 logger = logging.getLogger(__name__)
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
@@ -45,25 +46,7 @@ class SkincareAgent:
             "messages": [
                 {
                     "role": "system",
-                    "content": (
-                        "You are a skincare product analyzer. Strictly follow these rules:\n"
-                        "1. Analyze if text contains product name, ingredients, or both\n"
-                        "2. If text contains BOTH product name and ingredients:\n"
-                        "   - Return ONLY the product name (type=product)\n"
-                        "   - Ignore all ingredients\n"
-                        "3. If text contains ONLY ingredients:\n"
-                        "   - Return the cleaned ingredients list (type=ingredients)\n"
-                        "4. If text contains ONLY product name:\n"
-                        "   - Return the product name (type=product)\n"
-                        "5. Response MUST be JSON with EXACTLY these fields:\n"
-                        "   {\n"
-                        "     \"type\": \"product\" OR \"ingredients\" (NO other values),\n"
-                        "     \"product_name\": \"...\" (ONLY if type=product),\n"
-                        "     \"ingredients\": \"...\" (ONLY if type=ingredients)\n"
-                        "   }\n"
-                        "6. For product names, extract ONLY the brand+product name (no sizes, descriptions, etc.)\n"
-                        "7. For ingredients, return ONLY comma-separated ingredients (no percentages, numbers, etc.)"
-                    )
+                    "content": AGENT_CLASSIFICATION_PROMPT
                 },
                 {
                     "role": "user",

@@ -1,0 +1,33 @@
+app:
+ name:"SkinSage"
+ env:"development"
+ debug:true
+ log_level:"INFO"
+
+api:
+ groq:
+  url: "https://api.groq.com/openai/v1/chat/completions"
+  key_env: "GROQ_API_KEY"
+
+models:
+ analysis:
+  name: "gemma2-9b-it"
+  max_tokens: 4000
+  temperature: 0.5
+
+ agent:
+  name: "llama3-70b-8192"
+  temperature: 0.0
+
+ chat:
+  name: "llama3-70b-8192"
+  max_tokens: 1500
+  temperature: 0.3
+
+ comparison:
+  name: "gemma2-9b-it"
+
+
+ 
+ 
+  

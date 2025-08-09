@@ -4,6 +4,7 @@ import logging
 import aiohttp
 import re
 from dotenv import load_dotenv
+from backend.prompts.prompts import INGREDIENT_ANALYSIS_PROMPT
 
 # Load environment variables
 dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
@@ -183,7 +184,7 @@ async def analyze_ingredients(
                 "content": prompt
             }
         ],
-        "temperature": 0.7,  # Lower temperature for more consistent results
+        "temperature": 0.0,  # Lower temperature for more consistent results
         "max_tokens": 4000,   # Increased token limit
         "response_format": {"type": "json_object"}
     }

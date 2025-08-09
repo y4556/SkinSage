@@ -1,13 +1,18 @@
 import os
 from groq import Groq
 import  json
+import yaml
+from pathlib import Path
+
+config_path = Path(__file__).parent.parent / "config" / "config.yaml"
+cfg = yaml.safe_load(config_path.read_text())
 
 def compare_products(analysis1, analysis2, skin_type, concerns):
     """Compare two product analyses using Groq"""
     groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
     
     response = groq_client.chat.completions.create(
-        model="gemma2-9b-it",
+        model=cfg["models"]["comparison"]["name"],
         messages=[
             {
                 "role": "system",
